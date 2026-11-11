@@ -6,6 +6,50 @@ Mac의 BlueStacks Air에서 돌아가는 **Pickle 앱**을 MCP 클라이언트(C
 
 **Pickle 공식 API가 아닙니다.** 화면을 대신 눌러 주는 UI 자동화라서 앱 버전·화면 구성·언어가 바뀌면 깨질 수 있습니다. 개인용 실험 도구로만 쓰세요.
 
+## 에이전트에게 세팅 맡기기
+
+아래 글을 Claude Code나 Codex 같은 코딩 에이전트에 그대로 붙여 넣으면 설치와 등록을 대신 해 줍니다. BlueStacks와 Pickle 준비(앱 설치, 로그인, ADB 켜기)는 사람이 직접 해야 하며, 에이전트가 그 순서를 안내합니다.
+
+```text
+Pickle Air MCP를 내 Mac에 세팅해 줘. 저장소: https://github.com/veryhungryface/pickle-air-mcp
+
+1. 저장소 README의 "BlueStacks와 Pickle 준비" 절을 읽고, 내가 직접 해야 하는 일을 순서대로 안내해 줘.
+   (BlueStacks Air 설치, 세로 1080×1920 / 320 DPI, ADB 켜기, Play 스토어에서 Pickle 설치와 로그인,
+   쓸 에이전트의 채팅 화면 열어 두기) 이 단계는 네가 대신 하지 말고, 내가 끝냈다고 할 때까지 기다려.
+2. ~/pickle-air-mcp 에 저장소를 clone 하고, 그 안에 .venv 를 만들어 `pip install .` 로 설치해 줘.
+   Python 3.10 이상이 필요해.
+3. Pickle 채팅 화면 위쪽에 보이는 에이전트 이름을 나에게 물어봐. 추측하지 마.
+4. 지금 쓰는 MCP 클라이언트에 서버를 `pickle-air` 라는 이름으로 등록해 줘.
+   - command: 설치한 .venv/bin/pickle-air-mcp 의 절대 경로
+   - args: --agent "<내가 알려 준 이름>" --upload-dir ~/PickleShare --download-dir ~/Downloads/pickle-air-mcp
+     (경로는 ~ 대신 절대 경로로 쓰고, 두 폴더가 없으면 만들어 줘)
+   - --enable-ask 와 --enable-call 은 넣지 마. 내가 따로 켜 달라고 할 때만 추가해.
+5. 등록이 끝나면 MCP 서버를 다시 연결하는 방법을 알려 주고, 연결된 뒤 pickle_doctor 와 pickle_read 를
+   한 번씩 호출해서 결과를 보여 줘. 메시지 전송이나 전화는 하지 마.
+6. 오류가 나면 README의 "문제 해결" 표를 보고 원인을 알려 줘. BlueStacks 설정이나 macOS 권한을
+   네가 바꾸지는 마.
+```
+
+메시지 전송과 전화까지 쓰려면 세팅이 끝난 뒤 "`--enable-ask` 와 `--enable-call` 도 켜 줘"라고 따로 요청합니다. 직접 설치하려면 [준비물](#준비물)부터 따라 하면 됩니다.
+
+## 이렇게 쓸 수 있습니다
+
+아래 두 그림은 흐름을 설명하려고 **재구성한 예시 화면**입니다. 실제 화면 녹화가 아니며 내용은 가상 데이터입니다.
+
+### 이미지 기획은 Claude Code가, 생성은 피클이
+
+Claude Code가 콘셉트·구도·문구를 기획해 `pickle_ask`로 보내고, 피클이 만든 이미지를 `pickle_download_image`로 Mac에 받아 옵니다.
+
+![이미지 기획과 생성 흐름](docs/img/demo-image.gif)
+
+### 기업 리서치 → 피클 검수 → 전화로 요약 보고
+
+Claude Code가 리서치 보고서를 쓰고 `pickle_ask`에 첨부해 검수를 받은 뒤, `pickle_call`로 내 휴대폰에 전화를 걸어 요약을 보고하게 합니다.
+
+![리서치, 검수, 전화 보고 흐름](docs/img/demo-research.gif)
+
+## 구조
+
 ```text
 MCP 클라이언트 (Claude Code, Codex …)
   ↕ 로컬 stdio (자식 프로세스)

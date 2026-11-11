@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1200px;height:675px;overflow:hidden}
+body{background:#eef0f4;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;color:#1c2030;display:grid;grid-template-columns:1fr 330px;grid-template-rows:54px 559px 62px;gap:0 28px;padding:0 34px}
+header{grid-column:1/3;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:19px;font-weight:700;letter-spacing:-.2px}
+header .tag{font-size:12.5px;color:#5c6478;border:1px solid #c9cedb;border-radius:999px;padding:4px 11px;background:#fff}
+
+.term,.phone{min-height:0;height:559px}
+.term{background:#12151c;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(20,25,40,.16)}
+.bar{height:34px;background:#1b1f29;display:flex;align-items:center;padding:0 13px;gap:7px;flex:none}
+.bar i{width:11px;height:11px;border-radius:50%;background:#3a4050}
+.bar span{margin-left:10px;color:#8d95a8;font:12.5px "SF Mono",Menlo,monospace}
+.lines{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:14px 18px 16px;overflow:hidden;font:14.5px/1.62 "SF Mono",Menlo,"Apple SD Gothic Neo",monospace;color:#d5d9e3}
+.l{white-space:pre-wrap;word-break:keep-all}
+.l.user{color:#fff;background:#222838;border-radius:7px;padding:7px 11px;margin:3px 0 9px}
+.l.user:before{content:"> ";color:#7fb0ff}
+.l.dim{color:#8d95a8}
+.l.tool{color:#f0c674;margin-top:8px}
+.l.tool b{color:#fff;font-weight:600}
+.l.res{color:#9fd3a8;padding-left:18px}
+.l.say{margin-top:8px}
+.l.gap{height:6px}
+.phone{background:#0d0f14;border-radius:34px;padding:9px;box-shadow:0 10px 28px rgba(20,25,40,.22);display:flex}
+.screen{flex:1;background:#fff;border-radius:26px;overflow:hidden;display:flex;flex-direction:column}
+.top{flex:none;height:62px;border-bottom:1px solid #eceef3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.top .av{width:26px;height:26px;border-radius:50%;background:#ffd86b;display:grid;place-items:center;font-size:14px}
+.top .nm{font-size:12px;font-weight:600}
+.chat{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:12px 11px;overflow:hidden;background:#f7f8fb}
+.b{max-width:86%;font-size:12.5px;line-height:1.5;padding:8px 11px;border-radius:15px;white-space:pre-wrap;word-break:keep-all}
+.b.me{align-self:flex-end;background:#2f6bff;color:#fff;border-bottom-right-radius:5px}
+.b.ag{align-self:flex-start;background:#fff;border:1px solid #e6e9f0;border-bottom-left-radius:5px}
+.b.typing{color:#9aa1b3;letter-spacing:3px;font-weight:700}
+.b.file{display:flex;align-items:center;gap:8px;font-weight:600}
+.b.file:before{content:"";width:22px;height:27px;border-radius:4px;background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.55)}
+.b.img{padding:5px;width:74%}
+.poster{aspect-ratio:3/4;border-radius:11px;background:linear-gradient(160deg,#ffe3ea 0%,#ffc2d1 55%,#ff8fab 100%);position:relative;overflow:hidden}
+.poster .cup{position:absolute;left:50%;bottom:17%;transform:translateX(-50%);width:44%;height:42%;background:linear-gradient(#fff 0 26%,#ffb3c6 26% 62%,#fff5f7 62%);border-radius:7px 7px 16px 16px;box-shadow:0 8px 16px rgba(190,60,95,.28)}
+.poster .berry{position:absolute;left:50%;bottom:57%;transform:translateX(-50%);width:15%;aspect-ratio:1;background:#e5354f;border-radius:50% 50% 55% 55%}
+.poster .t1{position:absolute;top:9%;left:0;right:0;text-align:center;font-size:17px;font-weight:800;color:#b3203f;letter-spacing:-.3px}
+.poster .t2{position:absolute;bottom:6%;left:0;right:0;text-align:center;font-size:10px;font-weight:600;color:#fff}
+.b.call{align-self:center;max-width:94%;width:94%;background:#fff;border:1px solid #e6e9f0;border-radius:15px;text-align:center;padding:12px}
+.b.call .ic{width:36px;height:36px;border-radius:50%;margin:0 auto 6px;display:grid;place-items:center;color:#fff;font-size:17px;background:#21b36b}
+.b.call.end .ic{background:#9aa1b3}
+.b.call .tt{font-weight:700;font-size:13px}
+.b.call .st{color:#6b7286;font-size:11.5px;margin-top:2px}
+.inp{flex:none;height:44px;border-top:1px solid #eceef3;display:flex;align-items:center;padding:0 12px;gap:8px;background:#fff}
+.inp div{flex:1;height:28px;border-radius:14px;background:#f1f3f7}
+.inp i{width:26px;height:26px;border-radius:50%;background:#2f6bff}
+footer{grid-column:1/3;display:flex;align-items:center;gap:14px}
+.step{flex:none;font-size:12.5px;font-weight:700;color:#fff;background:#1c2030;border-radius:999px;padding:5px 12px}
+.cap{font-size:16.5px;font-weight:600;letter-spacing:-.2px}
+.dots{margin-left:auto;display:flex;gap:6px}
+.dots i{width:22px;height:4px;border-radius:2px;background:#cfd4e0}
+.dots i.on{background:#2f6bff}
+</style></head><body>
+<header><h1 id="title"></h1><span class="tag">재구성한 예시 화면 · 가상 데이터</span></header>
+<div class="term"><div class="bar"><i></i><i></i><i></i><span>Claude Code — pickle-air MCP</span></div><div class="lines" id="lines"></div></div>
+<div class="phone"><div class="screen"><div class="top"><div class="av">🥒</div><div class="nm">내 피클 에이전트</div></div><div class="chat" id="chat"></div><div class="inp"><div></div><i></i></div></div></div>
+<footer><span class="step" id="step"></span><span class="cap" id="cap"></span><span class="dots" id="dots"></span></footer>
+<script>
+const POSTER='<div class="poster"><div class="t1">딸기 라떼</div><div class="berry"></div><div class="cup"></div><div class="t2">봄 한정 · 3월 출시</div></div>';
+const S={
+image:{title:'이미지 기획은 Claude Code가, 생성은 피클이',steps:['요청','기획','피클에 전송','이미지 생성','내려받기'],ev:[
+ {s:0,cap:'Claude Code에 한 줄로 요청합니다',t:[['user','봄 신메뉴 딸기 라떼 포스터, 기획해서 피클로 만들어 줘']],d:2.2},
+ {s:1,cap:'Claude Code가 콘셉트·구도·문구를 기획합니다',t:[['say','포스터 기획안'],['dim','  콘셉트  봄 한정, 부드러운 분홍 그러데이션'],['dim','  구도    세로 3:4, 가운데 컵, 위에 딸기 한 알'],['dim','  문구    "딸기 라떼" / "봄 한정 · 3월 출시"']],d:3},
+ {s:2,cap:'기획안을 피클 에이전트에게 보냅니다',t:[['tool','● <b>pickle_ask</b>(message: "이 기획대로 포스터 이미지를 만들어 줘 …")']],p:[['me','이 기획대로 포스터 이미지를 만들어 줘.\n· 세로 3:4, 분홍 그러데이션\n· 가운데 컵, 위에 딸기 한 알\n· 문구: 딸기 라떼 / 봄 한정 · 3월 출시']],d:2.6},
+ {s:3,cap:'피클이 이미지를 만드는 동안 기다립니다',p:[['ag typing','•••']],d:1.6},
+ {s:3,cap:'피클이 완성한 이미지를 채팅에 보냅니다',pop:1,p:[['ag img',POSTER],['ag','기획안대로 만들었어요!']],t:[['res','⎿ final_reply: "기획안대로 만들었어요!"  reply_images: 1']],d:2.8},
+ {s:4,cap:'이미지를 Mac으로 내려받습니다',t:[['tool','● <b>pickle_download_image</b>()'],['res','⎿ ~/Downloads/pickle-air-mcp/pickle-image-0312.png']],d:2.4},
+ {s:4,cap:'기획부터 파일 저장까지 한 번에 끝납니다',t:[['say','포스터를 저장했습니다. 문구나 색을 바꿔 다시 만들까요?']],d:3.4},
+]},
+research:{title:'기업 리서치 → 피클 검수 → 전화로 요약 보고',steps:['요청','리서치','피클 검수','수정','전화 보고'],ev:[
+ {s:0,cap:'Claude Code에 한 줄로 요청합니다',t:[['user','루멘테크(가상 기업) 리서치하고, 피클 검수 받은 뒤 전화로 요약 보고해 줘']],d:2.4},
+ {s:1,cap:'Claude Code가 자료를 찾아 보고서를 씁니다',t:[['say','웹 검색 6건, 공시 2건 확인 → report.txt 작성'],['dim','  사업    산업용 센서, 매출의 70%가 수출'],['dim','  실적    작년 매출 +18%, 영업이익률 9%'],['dim','  리스크  주요 고객 2곳에 매출 집중']],d:3},
+ {s:2,cap:'보고서를 첨부해 피클 에이전트에게 검수를 맡깁니다',t:[['tool','● <b>pickle_ask</b>(message: "사실 오류·빠진 점 검수해 줘", attachments: ["report.txt"])']],p:[['me file','report.txt'],['me','이 보고서에서 사실 오류나 빠진 점을 검수해 줘.']],d:2.6},
+ {s:2,cap:'피클이 보고서를 읽고 검수 의견을 보냅니다',p:[['ag typing','•••']],d:1.5},
+ {s:2,cap:'피클이 보고서를 읽고 검수 의견을 보냅니다',pop:1,p:[['ag','검수 결과예요.\n① 영업이익률 9%의 출처 연도가 빠졌어요.\n② 경쟁사 비교가 없어요.\n③ 환율 영향을 리스크에 넣어 주세요.']],t:[['res','⎿ final_reply: "검수 결과예요. ① 영업이익률 … ② 경쟁사 … ③ 환율 …"']],d:3.2},
+ {s:3,cap:'검수 의견을 반영해 보고서를 고칩니다',t:[['say','검수 3건 반영: 출처 연도 표기, 경쟁사 2곳 비교, 환율 리스크 추가']],d:2.4},
+ {s:4,cap:'피클 에이전트에게 전화 보고를 요청합니다',t:[['tool','● <b>pickle_call</b>(target: "me", purpose: "루멘테크 리서치 핵심 3가지를 1분 안에 보고")']],p:[['me','지금 바로 나에게 전화를 걸어 줘.\n통화 목적: 루멘테크 리서치 핵심 3가지를 1분 안에 보고']],d:2.4},
+ {s:4,cap:'내 휴대폰이 울리고, 피클이 음성으로 요약을 보고합니다',p:[['call','<div class="ic">✆</div><div class="tt">리서치 요약 보고 통화</div><div class="st">통화 중 · 00:48</div>']],d:3},
+ {s:4,cap:'통화가 끝나면 결과가 Claude Code로 돌아옵니다',pop:1,p:[['call end','<div class="ic">✆</div><div class="tt">리서치 요약 보고 통화</div><div class="st">통화 종료 · 1:12</div>'],['ag','통화로 핵심 3가지를 전해 드렸어요.']],t:[['res','⎿ state: completed · 정상 연결, 1분 12초 통화']],d:3.6},
+]}};
+const q=new URLSearchParams(location.search),sc=S[q.get('sc')||'image'],n=+q.get('s')||0;
+document.getElementById('title').textContent=sc.title;
+const L=document.getElementById('lines'),C=document.getElementById('chat');
+let cur;
+for(let i=0;i<=n&&i<sc.ev.length;i++){cur=sc.ev[i];
+ for(let k=0;k<(cur.pop||0);k++)C.lastChild&&C.removeChild(C.lastChild);
+ (cur.t||[]).forEach(([c,h])=>{const e=document.createElement('div');e.className='l '+c;e.innerHTML=h;L.appendChild(e)});
+ (cur.p||[]).forEach(([c,h])=>{const e=document.createElement('div');e.className='b '+c;e.innerHTML=h;C.appendChild(e)});}
+document.getElementById('step').textContent=(cur.s+1)+' / '+sc.steps.length+'  '+sc.steps[cur.s];
+document.getElementById('cap').textContent=cur.cap;
+document.getElementById('dots').innerHTML=sc.steps.map((_,i)=>'<i class="'+(i<=cur.s?'on':'')+'"></i>').join('');
+document.title=sc.ev.map(e=>e.d).join(',');
+</script></body></html>
