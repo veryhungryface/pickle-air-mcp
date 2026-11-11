@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pickle-air-mcp"
+version = "0.1.0"
+description = "Unofficial per-user local stdio MCP wrapper for Pickle on BlueStacks Air"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = ["mcp==1.29.0", "pydantic>=2.11,<3"]
+
+[project.scripts]
+pickle-air-mcp = "pickle_mcp.__main__:main"
+pickle-air = "pickle_cli.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["pickle_mcp*", "pickle_cli*"]
+
+[tool.setuptools.package-data]
+pickle_cli = ["clipboard.swift"]

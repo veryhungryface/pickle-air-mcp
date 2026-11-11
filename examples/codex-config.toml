@@ -1,0 +1,12 @@
+# Merge only this section into your own MCP configuration after reviewing it.
+# Replace every YOUR_USER and the agent name. No tokens or account data are needed.
+# Keep approval enabled. Add "--enable-ask" to args only when ready for real sends.
+[mcp_servers.pickle_air]
+command = "/Users/YOUR_USER/tools/pickle-air-mcp-0.1.0/.venv/bin/pickle-air-mcp"
+args = [
+  "--agent", "사용할 에이전트 이름",
+  "--upload-dir", "/Users/YOUR_USER/PickleShare",
+  "--download-dir", "/Users/YOUR_USER/Downloads/pickle-air-mcp",
+]
+startup_timeout_sec = 30
+tool_timeout_sec = 1900

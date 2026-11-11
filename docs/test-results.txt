@@ -1,0 +1,52 @@
+test_agent_allowlist (test_mcp.AdapterTests.test_agent_allowlist) ... ok
+test_argv_and_attachment_root (test_mcp.AdapterTests.test_argv_and_attachment_root) ... ok
+test_calls_are_serialized (test_mcp.AdapterTests.test_calls_are_serialized) ... ok
+test_cancellation_keeps_lock_until_running_call_finishes (test_mcp.AdapterTests.test_cancellation_keeps_lock_until_running_call_finishes) ... ok
+test_changed_root_symlink_rejected (test_mcp.AdapterTests.test_changed_root_symlink_rejected) ... ok
+test_cross_process_style_lock_blocks_second_adapter (test_mcp.AdapterTests.test_cross_process_style_lock_blocks_second_adapter) ... ok
+test_directory_and_bad_extension_attachment_rejected (test_mcp.AdapterTests.test_directory_and_bad_extension_attachment_rejected) ... ok
+test_download_no_overwrite_even_dangling_symlink (test_mcp.AdapterTests.test_download_no_overwrite_even_dangling_symlink) ... ok
+test_duplicate_blocked_after_timeout_and_restart (test_mcp.AdapterTests.test_duplicate_blocked_after_timeout_and_restart) ... ok
+test_duplicate_request_id_blocked_after_success (test_mcp.AdapterTests.test_duplicate_request_id_blocked_after_success) ... ok
+test_large_attachment_rejected (test_mcp.AdapterTests.test_large_attachment_rejected) ... ok
+test_missing_upload_setting_rejected (test_mcp.AdapterTests.test_missing_upload_setting_rejected) ... ok
+test_option_like_agent_remains_one_data_argument (test_mcp.AdapterTests.test_option_like_agent_remains_one_data_argument) ... ok
+test_option_like_message_remains_one_data_argument (test_mcp.AdapterTests.test_option_like_message_remains_one_data_argument) ... ok
+test_process_exception_leaves_reservation (test_mcp.AdapterTests.test_process_exception_leaves_reservation) ... ok
+test_request_body_not_in_reservation (test_mcp.AdapterTests.test_request_body_not_in_reservation) ... ok
+test_sending_is_opt_in (test_mcp.AdapterTests.test_sending_is_opt_in) ... ok
+test_symlink_attachment_rejected (test_mcp.AdapterTests.test_symlink_attachment_rejected) ... ok
+test_actual_sdk_stdio_all_four_tools_and_errors (test_mcp.ProtocolTests.test_actual_sdk_stdio_all_four_tools_and_errors) ... Tool 'raw_adb_shell' not listed, no validation will be performed
+ok
+test_production_entrypoint_initializes_without_adb (test_mcp.ProtocolTests.test_production_entrypoint_initializes_without_adb) ... ok
+test_invalid_cli_output_is_sanitized (test_mcp.RunnerTests.test_invalid_cli_output_is_sanitized) ... ok
+test_stdout_captured_and_no_shell (test_mcp.RunnerTests.test_stdout_captured_and_no_shell) ... ok
+test_timeout_kills_group_once_no_retry (test_mcp.RunnerTests.test_timeout_kills_group_once_no_retry) ... ok
+test_control_in_agent_rejected (test_mcp.ValidationTests.test_control_in_agent_rejected) ... ok
+test_doctor_rejects_unknown_args (test_mcp.ValidationTests.test_doctor_rejects_unknown_args) ... ok
+test_invalid_message (test_mcp.ValidationTests.test_invalid_message) ... ok
+test_korean_newline_and_shell_like_text_are_data (test_mcp.ValidationTests.test_korean_newline_and_shell_like_text_are_data) ... ok
+test_settings_bounds (test_mcp.ValidationTests.test_settings_bounds) ... ok
+test_strict_arguments (test_mcp.ValidationTests.test_strict_arguments) ... ok
+test_bad_magic (test_original_cli.PacketTests.test_bad_magic) ... ok
+test_bad_port (test_original_cli.PacketTests.test_bad_port) ... ok
+test_disconnect (test_original_cli.PacketTests.test_disconnect) ... ok
+test_invalid_zero_checksum (test_original_cli.PacketTests.test_invalid_zero_checksum) ... ok
+test_oversized (test_original_cli.PacketTests.test_oversized) ... ok
+test_partial_receive (test_original_cli.PacketTests.test_partial_receive) ... ok
+test_wire_header (test_original_cli.PacketTests.test_wire_header) ... ok
+test_ambiguous_target_stops (test_original_cli.SafetyTests.test_ambiguous_target_stops) ... ok
+test_endpoint_lock_blocks_other_command (test_original_cli.SafetyTests.test_endpoint_lock_blocks_other_command) ... ok
+test_existing_draft_stops (test_original_cli.SafetyTests.test_existing_draft_stops) ... ok
+test_existing_output_preserved (test_original_cli.SafetyTests.test_existing_output_preserved) ... ok
+test_filenames (test_original_cli.SafetyTests.test_filenames) ... ok
+test_journal_prevents_resend (test_original_cli.SafetyTests.test_journal_prevents_resend) ... ok
+test_no_message_content_in_journal (test_original_cli.SafetyTests.test_no_message_content_in_journal) ... ok
+test_request_id_traversal (test_original_cli.SafetyTests.test_request_id_traversal) ... ok
+test_unicode_and_shell_characters_use_clipboard (test_original_cli.SafetyTests.test_unicode_and_shell_characters_use_clipboard) ... ok
+test_wrong_agent_stops (test_original_cli.SafetyTests.test_wrong_agent_stops) ... ok
+
+----------------------------------------------------------------------
+Ran 46 tests in 2.210s
+
+OK

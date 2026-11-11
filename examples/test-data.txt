@@ -1,0 +1,5 @@
+PICKLE FILE TEST
+Code: TXT-5832
+Apples: 7
+Oranges: 5
+Task: Add Apples and Oranges.
