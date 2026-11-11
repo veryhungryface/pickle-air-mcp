@@ -34,15 +34,59 @@ pickle-air-mcp → 동봉된 pickle-air CLI
 
 ## 준비물
 
-1. Apple Silicon Mac, BlueStacks Air, Pickle 앱(본인 계정으로 로그인).
-2. Python 3.10 이상.
-3. BlueStacks 설정에서 직접 켠 로컬 ADB. 기본 포트는 `127.0.0.1:5555`입니다.
+1. Apple Silicon Mac과 [BlueStacks Air](https://www.bluestacks.com/mac).
+2. BlueStacks 안에 설치하고 본인 계정으로 로그인한 Pickle 앱.
+3. Python 3.10 이상.
 4. 로컬 stdio MCP 서버를 실행할 수 있는 클라이언트.
 5. (선택) Xcode 명령줄 도구의 Swift와 macOS 손쉬운 사용 권한 — 한글 입력의 예비 경로에서만 씁니다.
 
-확인한 환경: BlueStacks Air(Android 13), 화면 720×1280/240dpi와 1080×1920/320dpi, Pickle 앱 언어 영어. 다른 버전·언어에서는 동작을 보장하지 않습니다.
+서버는 앱을 설치하거나 ADB를 켜거나 권한·보안 설정을 바꾸지 않습니다. 아래 준비는 사용자가 직접 합니다.
 
-서버는 앱을 설치하거나 ADB를 켜거나 권한·보안 설정을 바꾸지 않습니다. 그 준비는 사용자가 직접 합니다.
+## BlueStacks와 Pickle 준비
+
+MCP를 설치하기 전에 한 번만 해 두면 됩니다. 메뉴 이름과 위치는 BlueStacks 버전에 따라 조금 다를 수 있습니다.
+
+### 1. BlueStacks Air 설치
+
+<https://www.bluestacks.com/mac> 에서 BlueStacks Air를 받아 설치합니다. Apple Silicon(M 시리즈) Mac 전용입니다. 확인한 버전은 5.21.790(Android 13)입니다.
+
+### 2. 화면을 세로 해상도로 맞추기
+
+BlueStacks 설정(⌘,) → **Display**에서 아래처럼 맞추고 BlueStacks를 다시 시작합니다.
+
+| 항목 | 값 |
+|---|---|
+| 방향 | 세로(Portrait) |
+| 해상도 | **1080 × 1920** |
+| 픽셀 밀도 | **320 DPI** |
+
+720 × 1280 / 240 DPI에서도 동작을 확인했습니다. 가로 화면이나 그 밖의 해상도·밀도는 확인하지 않았습니다. 버튼 위치를 화면 크기와 밀도로 계산하기 때문에, 폭과 밀도의 비율이 위 두 조합과 다르면 엉뚱한 곳을 누를 수 있습니다.
+
+### 3. ADB 켜기
+
+BlueStacks 설정 → **Advanced** → **Android Debug Bridge(ADB)** 를 켭니다. 같은 화면에 연결 주소가 `127.0.0.1:5555`로 표시됩니다. 포트가 다르면 서버를 시작할 때 `--port`로 알려 줍니다.
+
+- **원격(네트워크) ADB 접속은 켜지 마세요.** 이 서버는 같은 Mac 안의 `127.0.0.1`로만 연결합니다.
+- `adb` 프로그램을 따로 설치할 필요는 없습니다. 서버에 연결 기능이 들어 있습니다.
+
+### 4. Pickle 설치와 로그인
+
+1. BlueStacks 안의 Play 스토어에 구글 계정으로 로그인합니다.
+2. [Pickle](https://play.google.com/store/apps/details?id=com.pickle.client)을 검색해 설치합니다(패키지 이름 `com.pickle.client`, 확인한 버전 1.1.18).
+3. Pickle을 열어 **본인 계정으로 로그인**합니다.
+4. 앱 언어는 **영어 또는 한국어**로 둡니다. 화면의 글자를 읽어 버튼을 찾기 때문에 다른 언어에서는 실패할 수 있습니다. `pickle_usage`는 영어에서만 확인했습니다.
+5. 전화 기능(`pickle_call`)을 쓰려면 Pickle 프로필에 내 전화번호가 등록되어 있어야 합니다.
+
+### 5. 에이전트 채팅 화면을 띄워 두기
+
+도구를 부르는 동안에는 아래 상태여야 합니다. 하나라도 어긋나면 도구는 아무것도 누르지 않고 오류로 끝납니다.
+
+- BlueStacks가 **실행 중**이고, 그 안에서 **Pickle이 맨 앞**에 있습니다(다른 앱·팝업·권한 창이 떠 있지 않음).
+- `--agent`로 허용한 **그 에이전트의 채팅 화면**이 열려 있습니다. 화면 위쪽에 에이전트 이름이 보여야 합니다. 대화 목록, 프로필, 통화 기록 화면에서는 동작하지 않습니다.
+- 입력창이 **비어** 있습니다(쓰다 만 글·첨부가 없음).
+- 호출이 끝날 때까지 BlueStacks 창을 클릭하거나 스크롤하지 않습니다.
+
+BlueStacks 창이 Mac 화면 맨 앞에 있을 필요는 없고, Mac 화면이 잠겨 있어도 됩니다. BlueStacks를 종료하면 안 됩니다. 다만 한글 입력이 기본 경로로 안 될 때 쓰는 예비 경로는 BlueStacks 창을 잠깐 앞으로 가져오며, 화면이 잠겨 있으면 동작하지 않습니다. 도구는 다른 대화로 이동하지 않으므로 채팅 화면은 사용자가 직접 열어 둡니다.
 
 ## 설치
 
@@ -105,12 +149,12 @@ Codex용 TOML 예는 [examples/codex-config.toml](examples/codex-config.toml)에
 
 ## 처음 써 보기
 
-1. BlueStacks와 Pickle을 열고, 쓸 에이전트 대화를 직접 엽니다. 입력창은 비워 둡니다.
+1. [BlueStacks와 Pickle 준비](#bluestacks와-pickle-준비)의 5번처럼 에이전트 채팅 화면을 띄워 둡니다.
 2. `pickle_doctor` → `pickle_read` 순서로 연결과 화면 인식을 확인합니다.
 3. 맞으면 `--enable-ask`를 켜고 민감하지 않은 테스트 문구 한 건만 보내 봅니다.
 4. 첨부, 파일 받기, 사진 받기, 전화는 하나씩 따로 시험합니다.
 
-**호출 중에는 BlueStacks 화면을 건드리지 마세요.** 대화는 그 에이전트의 채팅 화면에 머물러 있어야 합니다. 도구는 다른 대화로 이동하지 않습니다.
+`pickle_doctor`가 `adb: CONNECTED`를 돌려주지 않으면 BlueStacks가 켜져 있는지, 3번의 ADB 설정과 포트가 맞는지 확인합니다.
 
 ## 사용 예
 
