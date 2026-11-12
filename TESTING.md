@@ -2,9 +2,9 @@
 
 ## 로컬 수정판에서 확인한 것
 
-2026-11-12, macOS(Apple Silicon), Python 3.12에서 단위 테스트 **47개 통과**(모의 CLI, 실제 전송 없음).
+2026-11-12, macOS(Apple Silicon), Python 3.12에서 단위 테스트 **49개 통과**(모의 CLI, 실제 전송 없음).
 
-같은 Mac의 BlueStacks Air + Pickle 실제 계정으로 Claude Code에서 `pickle_doctor`, `pickle_read`, `pickle_ask`, `pickle_call`(대상 `me`)을 호출해 동작을 확인했습니다. 자동화된 실기기 테스트는 없으며, 다른 앱 버전·언어·화면 크기는 확인하지 않았습니다.
+같은 Mac의 BlueStacks Air + Pickle 실제 계정으로 Claude Code에서 `pickle_doctor`, `pickle_read`, `pickle_ask`, `pickle_call`(대상 `me`)을 호출해 동작을 확인했습니다. 이미지 첨부 전송과 코드 블록이 든 긴 답변(4,000자 이상) 복사도 확인했습니다. 자동화된 실기기 테스트는 없으며, 다른 앱 버전·언어·화면 크기는 확인하지 않았습니다.
 
 아래는 원본 0.1.0 배포본의 검증 기록입니다. 도구 수(4개)와 테스트 수(46개)는 그 시점 기준입니다.
 

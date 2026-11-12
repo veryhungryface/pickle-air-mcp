@@ -216,8 +216,11 @@ Codex용 TOML 예는 [examples/codex-config.toml](examples/codex-config.toml)에
 
 - `request_id`: 영문·숫자·밑줄·하이픈 1~80자. 한 작업에는 같은 ID를 씁니다.
 - `attachments`: `--upload-dir` 바로 아래 파일명만. 최대 4개, 파일당 8 MiB, `.png .jpg .jpeg .txt .pdf .csv`. 이름은 ASCII로 시작해야 합니다.
+- `quiet`: 화면에 변화가 없는 시간이 이만큼(초, 최대 300) 이어지면 답변이 끝난 것으로 봅니다. 기본값 0은 자동(8초, 짧은 한 줄만 왔을 때는 20초)입니다. 분석·검색처럼 오래 걸리는 일은 `"quiet": 180`처럼 늘리고 `timeout`도 그보다 길게 둡니다.
 - `download_name`: 에이전트가 만들 파일 이름을 미리 알면 같은 호출에서 받아 옵니다.
 - 결과의 `final_reply`가 답변 전문(마크다운 원문)입니다. `reply_bubbles`는 말풍선별 목록, `reply_files`는 첨부 파일 이름, `reply_images`는 사진 수입니다.
+- "Thinking...", "Typing…" 같은 진행 표시는 답변으로 치지 않고, 떠 있는 동안에는 계속 기다립니다.
+- 에이전트가 "시작할게요" 같은 짧은 한 줄만 먼저 보내고 조용히 작업하면 그 한 줄에서 끝날 수 있습니다. 이때 결과에 `reply_may_continue: true`가 붙습니다. **다시 보내지 말고** 잠시 뒤 `pickle_read`의 `copy_messages`로 본 답변을 읽습니다.
 
 ### 전화 걸기
 
@@ -254,7 +257,9 @@ Codex용 TOML 예는 [examples/codex-config.toml](examples/codex-config.toml)에
 | `Request ID already recorded` | 이미 쓴 ID입니다. 위의 재전송 금지 규칙대로 상태를 확인한 뒤 판단하세요. |
 | `Another CLI operation is running` | 앞선 호출이 아직 끝나지 않았습니다. |
 | `pickle_usage`가 항목을 못 찾음 | 앱 언어가 영어가 아닐 수 있습니다. `pickle_cli/core.py`의 `LABELS`에 그 언어의 탭·항목 이름을 추가합니다. |
+| 답변이 "시작할게요" 한 줄뿐 (`reply_may_continue: true`) | 에이전트가 아직 작업 중입니다. 다시 보내지 말고 `pickle_read`의 `copy_messages`로 읽거나, 다음부터 `quiet`를 늘립니다. |
 | 긴 답변의 뒷부분이 빠짐 | 말풍선 사이 간격이 길었던 경우입니다. `pickle_read`의 `copy_messages`로 다시 읽습니다. |
+| `Attachment chip count differs; nothing sent` | 첨부 표시가 20초 안에 뜨지 않았습니다. 아무것도 전송되지 않았으니 입력창을 비우고 새 `request_id`로 다시 시도합니다. |
 
 화면을 어떻게 인식했는지 보려면 `~/.local/state/pickle-air-cli/trace.on` 파일을 만드세요. 같은 폴더의 `trace.log`에 스냅샷 요약이 쌓입니다.
 

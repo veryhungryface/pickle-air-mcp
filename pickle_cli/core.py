@@ -8,6 +8,8 @@ SAFE_ASCII=re.compile(r"[A-Za-z0-9 .,!?_:/()+=@#\-]*\Z")
 FILE_SIZE=re.compile(r'[\d.,]+ ?(B|KB|MB|GB) [·•] ?\S+')  # file card subtitle, e.g. '77B · txt'
 # Local addition: names of files the agent creates are often Korean or contain spaces. They are only
 # matched on screen and used as the local file name, so allow anything that cannot form a path.
+# Progress indicators the app shows while the agent works; never part of a reply.
+STATUS=re.compile(r'(?:Thinking|Typing|Working|Searching|Reading|Analyzing|Generating|Calling|생각하는 중|생각 중|입력 중|작업 중|검색 중)[^\n]{0,30}(?:\.\.\.|…)')
 SAFE_DL=re.compile(r'(?!\.)[^\x00-\x1f/\\:]{1,120}\Z')
 SAFE_NAME=re.compile(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,119}\Z')
 
@@ -325,7 +327,14 @@ class Pickle:
     def rows(self):
         """Chat bubbles that can be long-pressed, newest (lowest) first. Each bubble is one row of
         the chat list: the outermost ancestor of its text that is narrower than the screen."""
-        root=self.tree();nodes=list(root.iter('node'));self.verify(nodes)
+        root=self.tree();nodes=list(root.iter('node'))
+        # Local fix: a slow scroll gesture can open the long-press menu. Close it (only when it is
+        # really open) and look again, so its Reply/Copy/Select and emoji rows are never read as messages.
+        if self.menu_open(nodes):
+            self.adb.shell('input keyevent 4');time.sleep(0.8)
+            root=self.tree();nodes=list(root.iter('node'))
+            if self.menu_open(nodes):raise CLIError('Message menu is still open')
+        self.verify(nodes)
         bottom=bounds(self.field(nodes))[1];width=max(bounds(n)[2] for n in nodes)
         parent={c:q for q in root.iter() for c in q}
         found={}
@@ -343,7 +352,14 @@ class Pickle:
             r['texts'].append((b[1],n.get('text')))
             if b[2]>=width-self.px(60):r['mine']=True
             top=max(b[1],self.px(250));end=min(b[3],bottom-self.px(10))
-            if end-top>=10 and (r['press'] is None or top>r['press'][2]):r['press']=((b[0]+b[2])//2,(top+end)//2,top)
+            if end-top>=10 and (r['press'] is None or top>r['press'][2]):
+                r['press']=((b[0]+b[2])//2,(top+end)//2,top)
+                # Local fix: a code block swallows the long press. Keep a second point in the bubble's
+                # own padding, just right of the text, where the menu does open.
+                e=parent.get(n)
+                while e is not None and e.tag=='node' and bounds(e)[2]<=b[2]:e=parent.get(e)
+                eb=bounds(e) if e is not None and e.tag=='node' else None
+                r['alt']=((b[2]+eb[2])//2,(top+end)//2) if eb and self.px(8)<=eb[2]-b[2]<=self.px(60) and eb[2]<width else None
         # Local addition: a picture the agent (or I) sent is a row with no text at all, just a tappable view.
         for n in nodes:
             if n.get('clickable')!='true' or n.get('package')!=PACKAGE or n.get('content-desc') or n.get('text'):continue
@@ -369,8 +385,12 @@ class Pickle:
             if size and len(label)==1:
                 out.append({'texts':texts,'mine':r['mine'],'press':r['press'][:2],'file':{'name':label[0],'info':size[0]}});continue
             # A centred single line that reaches neither margin is a date separator, not a bubble.
-            out.append({'texts':texts,'mine':r['mine'],'press':r['press'][:2]})
+            out.append({'texts':texts,'mine':r['mine'],'press':r['press'][:2],'alt':r.get('alt')})
         return out
+    @staticmethod
+    def menu_open(nodes):
+        return any(n.get('content-desc') in ['More emoji','이모지 더보기'] for n in nodes) or \
+            {'Reply','Copy','Select'}<={n.get('text') for n in nodes} or {'답장','복사','선택'}<={n.get('text') for n in nodes}
     def open_copy_menu(self,x,y):
         self.adb.shell(f'input touchscreen swipe {x} {y} {x} {y} 900');time.sleep(1)
         after=self.snapshot()
@@ -380,7 +400,23 @@ class Pickle:
             if any(n.get('content-desc') in ['More emoji','이모지 더보기'] for n in after):self.adb.shell('input keyevent 4');time.sleep(0.8)
             raise CLIError('Copy menu not found')
         self.tap(menu[0])
-    def copy_at(self,x,y):
+    def copy_at(self,x,y,alt=None):
+        try:return self._copy_at(x,y)
+        except CLIError as e:
+            if str(e)!='Copy menu not found' or not alt:raise
+        return self._copy_at(*alt)
+    def mac_longer(self,cur):
+        """Local fix: the emulator's clipboard service hands back at most 4000 bytes of a long copy,
+        while the copy mirrored to the Mac is whole. Use the Mac text when it extends this one."""
+        if not 3990<=len(cur.encode('utf-8'))<=4000 or sys.platform!='darwin' or not shutil.which('pbpaste'):return cur
+        env={**os.environ,'LC_CTYPE':'UTF-8'};head=cur[:-4]
+        for _ in range(10):
+            try:mac=subprocess.run(['pbpaste'],capture_output=True,timeout=10,env=env).stdout.decode('utf-8','replace')
+            except (OSError,subprocess.SubprocessError):break
+            if len(mac)>len(cur) and mac.startswith(head):return mac
+            time.sleep(0.3)
+        self.note('copy may be cut at 4000 bytes');return cur
+    def _copy_at(self,x,y):
         """Long-press a bubble and use the app's own Copy: the whole original text (markdown),
         however long. BlueStacks shares its clipboard with macOS, so it is read with pbpaste;
         a previous text clipboard is put back afterwards."""
@@ -391,7 +427,7 @@ class Pickle:
                 self.open_copy_menu(x,y)
                 for _ in range(20):
                     time.sleep(0.3);cur=self.clip_get()
-                    if cur is not None and cur!=sentinel:return cur
+                    if cur is not None and cur!=sentinel:return self.mac_longer(cur)
                 raise CLIError('Copied text did not reach the clipboard')
         except CLIError as e:
             if str(e)=='Copy menu not found':raise
@@ -413,7 +449,7 @@ class Pickle:
     def copy_last(self):
         self.to_latest()
         for r in self.rows():
-            if not r['mine'] and not self.separator(r):return self.copy_at(*r['press'])
+            if not r['mine'] and not self.separator(r):return self.copy_at(*r['press'],alt=r.get('alt'))
         raise CLIError('No agent message visible to copy')
     @staticmethod
     def separator(r):return len(r['texts'])==1 and re.fullmatch(r'(Today|Yesterday|오늘|어제|\w+ \d+|\d+월 \d+일).*',r['texts'][0]) is not None and len(r['texts'][0])<40
@@ -425,14 +461,21 @@ class Pickle:
         nodes=self.verify(self.snapshot());bottom=bounds(self.field(nodes))[1]
         lo,hi=bottom-self.px(560),bottom-self.px(140);mid=self.width()//2
         if lo<self.px(260):raise CLIError('Chat area too small to scroll safely')
-        got=[];files=[];images=0;prev=None;moved=0;reached=False;done=False
+        got=[];files=[];images=0;prev=None;moved=0;reached=False;done=False;same=0
         try:
             for _ in range(pages):
                 rows=self.rows()
                 sigs=[{t for t in r['texts'] if len(t)>3} or set(r['texts']) for r in rows]
                 j=0
                 if prev is not None:
-                    if sigs==prev:break  # top of the history
+                    if sigs==prev:
+                        # Local fix: one bubble taller than the screen looks the same page after page.
+                        # Keep scrolling a few pages before deciding this is the top of the history.
+                        same+=1
+                        if len(rows)!=1 or same>=14:break
+                        self.adb.shell(f'input touchscreen swipe {mid} {lo} {mid} {hi} 900');time.sleep(0.8);moved+=1
+                        continue
+                    same=0
                     j=next((k for k in range(min(len(rows),len(prev)),0,-1) if all(sigs[i]&prev[len(prev)-k+i] for i in range(k))),0)
                 for r in rows[j:]:
                     if r['mine']:
@@ -442,7 +485,7 @@ class Pickle:
                         images+=1;got.append('[image]');continue
                     if r.get('file'):
                         files.append(r['file']);got.append('[file: %s (%s)]'%(r['file']['name'],r['file']['info']));continue
-                    try:text=self.copy_at(*r['press'])
+                    try:text=self.copy_at(*r['press'],alt=r.get('alt'))
                     except CLIError:text='\n'.join(r['texts'])  # no Copy menu on this bubble: keep what is visible
                     got.append(text)
                     if stop is None and len(got)>=limit:done=True;break

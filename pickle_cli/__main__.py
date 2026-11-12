@@ -1,7 +1,7 @@
 import argparse, hashlib, uuid, json, os, shlex, shutil, subprocess, sys, time
 from pathlib import Path
 from .adb import ADB,CLIError
-from .core import Pickle,Journal,digest,SAFE_NAME,SAFE_DL,LABELS,EndpointLock,bounds
+from .core import Pickle,Journal,digest,SAFE_NAME,SAFE_DL,LABELS,EndpointLock,bounds,STATUS
 
 def output(value):print(json.dumps(value,ensure_ascii=False,indent=2),flush=True)
 def parser():
@@ -67,8 +67,12 @@ def dispatch(args):
             folder='pickle-cli-'+uuid.uuid4().hex[:16]
             names=ui.upload(staged,folder) if args.attach else []
             for name in names:ui.attach(folder,name)
-            nodes=ui.verify(ui.snapshot())
-            if sum(n.get('content-desc') in ['첨부 삭제','Remove attachment'] for n in nodes)!=len(names):raise CLIError('Attachment chip count differs; nothing sent')
+            # Local change: a large image's chip can appear a few seconds after the picker closes; wait for it.
+            def chips():
+                nodes=ui.verify(ui.snapshot())
+                if sum(n.get('content-desc') in ['첨부 삭제','Remove attachment'] for n in nodes)!=len(names):raise CLIError('Attachment chip count differs; nothing sent')
+                return nodes
+            nodes=ui.until(chips,20) if names else ui.verify(ui.snapshot())
             ui.text(args.message)
             nodes=ui.verify(ui.snapshot())
             if ui.field(nodes).get('text')!=args.message:raise CLIError('Draft changed before send')
@@ -87,6 +91,10 @@ def dispatch(args):
                     check=ui.verify(ui.snapshot())
                     if not ui.field(check).get('text'):
                         confirmed=True;journal.set('sent_confirmed')
+                # Local fix: 'Thinking...' / 'Typing…' are progress indicators, not replies. While one is
+                # on screen the agent is still working, so the quiet timer starts over.
+                if any(STATUS.fullmatch(m['text']) for m in messages if not ui.mine(m)):last_change=time.monotonic()
+                messages=[m for m in messages if not STATUS.fullmatch(m['text'])]
                 new=[m['text'] for m in messages if m['text'] not in baseline and m['text']!=args.message and m['text'] not in names and not ui.mine(m) and m['text'] not in {'TXT','PNG','PDF','JPG','CSV'}]
                 for text in reversed(new):
                     if text not in seen:replies.append(text);seen.add(text);last_change=time.monotonic()
@@ -126,7 +134,10 @@ def dispatch(args):
                 except CLIError:pass
             state='completed' if confirmed and replies and (not args.download_dir or download) else 'sent_wait_timeout' if confirmed else 'uncertain'
             journal.set(state)
-            output({'request_id':request_id,'state':state,'sent_confirmed':confirmed,'final_reply':final,'reply_bubbles':bubbles,'reply_files':files,'reply_images':images,'replies':replies,'replies_complete':complete,'download':download,'no_automatic_resend':True})
+            # Local addition: one short line is often only "I'll start now"; the real answer may still come.
+            body=final if final is not None else '\n'.join(replies)
+            may_continue=bool(replies) and not files and not images and not download and '\n' not in body.strip() and len(body.strip())<=80
+            output({'request_id':request_id,'reply_may_continue':may_continue,'state':state,'sent_confirmed':confirmed,'final_reply':final,'reply_bubbles':bubbles,'reply_files':files,'reply_images':images,'replies':replies,'replies_complete':complete,'download':download,'no_automatic_resend':True})
             return 0 if state=='completed' else 4
     except (CLIError,OSError,ValueError,subprocess.SubprocessError) as e:
         output({'error':str(e),'no_automatic_resend':True,'action':'Inspect the app and local journal before any retry.'});return 2

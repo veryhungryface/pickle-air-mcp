@@ -171,6 +171,26 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(str(self.settings.download_dir), argv)
         self.assertEqual(timeout, 1800)
 
+    async def test_ask_quiet_is_passed_only_when_set(self):
+        await self.adapter.invoke("ask", AskInput(agent="A", message="synthetic message", request_id="quiet-default"))
+        self.assertNotIn("--quiet", self.calls[0][0])
+        await self.adapter.invoke("ask", AskInput(agent="A", message="synthetic message", request_id="quiet-set", quiet=180))
+        argv, _ = self.calls[1]
+        self.assertEqual(argv[argv.index("--quiet") + 1], "180")
+        with self.assertRaises(ValidationError):
+            AskInput(agent="A", message="synthetic message", request_id="quiet-bad", quiet=301)
+
+    def test_progress_indicators_and_open_menu_are_not_messages(self):
+        from pickle_cli.core import STATUS, Pickle
+        for text in ("Thinking...", "Typing…", "Searching the web..."):
+            self.assertTrue(STATUS.fullmatch(text))
+        for text in ("알겠어요…", "수학 문제집 페이지 분석 시작할게요.", "Thinking about it, the answer is 3."):
+            self.assertFalse(STATUS.fullmatch(text))
+        node = lambda **kw: kw
+        self.assertTrue(Pickle.menu_open([node(text="Reply"), node(text="Copy"), node(text="Select")]))
+        self.assertTrue(Pickle.menu_open([{"content-desc": "More emoji"}]))
+        self.assertFalse(Pickle.menu_open([node(text="Copy that, thanks"), node(text="Reply")]))
+
     async def test_option_like_message_remains_one_data_argument(self):
         from pickle_cli.__main__ import parser
         args = AskInput(agent="A", message="--help", request_id="option-text")
