@@ -191,6 +191,50 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(Pickle.menu_open([{"content-desc": "More emoji"}]))
         self.assertFalse(Pickle.menu_open([node(text="Copy that, thanks"), node(text="Reply")]))
 
+    def test_file_card_with_page_count_and_hidden_extension(self):
+        from pickle_cli.core import FILE_SIZE, card_ext, card_name
+        for info in ("77B · txt", "2 pages · 15.9MB · pdf", "1.2 KB • csv"):
+            self.assertTrue(FILE_SIZE.fullmatch(info))
+        for text in ("quiz-linear-function", "PDF", "15.9MB", "오늘 15.9MB · 파일을 두 개 보냈어요 · 확인해 주세요"):
+            self.assertFalse(FILE_SIZE.fullmatch(text))
+        self.assertEqual(card_ext("2 pages · 15.9MB · pdf"), "pdf")
+        self.assertEqual(card_name("quiz-linear-function", "2 pages · 15.9MB · pdf"), "quiz-linear-function.pdf")
+        self.assertEqual(card_name("test-data.txt", "77B · txt"), "test-data.txt")
+        self.assertEqual(card_name("메모", ""), "메모")
+
+    def test_large_files_are_read_in_pieces_and_review_dialog_is_closed(self):
+        import base64
+        from pickle_cli.core import Pickle
+        blob = bytes(range(256)) * 5000  # 1.28 MB
+        calls = []
+        class FakeADB:
+            def shell(self, command):
+                calls.append(command)
+                if command.startswith("dd "):
+                    i = int(command.split("skip=")[1].split()[0]); step = 512 * 1024
+                    return base64.b64encode(blob[i * step:(i + 1) * step]).decode()
+                return base64.b64encode(blob).decode()
+        ui = Pickle(FakeADB(), "A")
+        self.assertEqual(ui.read_remote("/sdcard/Download/x.pdf", len(blob)), blob)
+        self.assertEqual(sum(c.startswith("dd ") for c in calls), 3)
+        self.assertEqual(ui.read_remote("/sdcard/Download/x.pdf", 100)[:10], blob[:10])
+
+        dialog = '<?xml version="1.0"?><hierarchy><node package="com.android.vending" bounds="[0,0][10,10]"/></hierarchy>'
+        chat = '<?xml version="1.0"?><hierarchy><node package="com.pickle.client" bounds="[0,0][10,10]"/></hierarchy>'
+        seen = []
+        class PopupADB:
+            def __init__(self): self.open = True
+            def shell(self, command):
+                seen.append(command)
+                if command.startswith("uiautomator"): return dialog if self.open else chat
+                if command.startswith("dumpsys"): return "mCurrentFocus=Window{1 u0 com.android.vending/com.google.android.finsky.inappreviewdialog.InAppReviewActivity}"
+                if command == "input keyevent 4": self.open = False
+                return ""
+        with patch("pickle_cli.core.time.sleep"):
+            nodes = Pickle(PopupADB(), "A").snapshot()
+        self.assertEqual([n.get("package") for n in nodes], ["com.pickle.client"])
+        self.assertEqual(seen.count("input keyevent 4"), 1)
+
     async def test_option_like_message_remains_one_data_argument(self):
         from pickle_cli.__main__ import parser
         args = AskInput(agent="A", message="--help", request_id="option-text")

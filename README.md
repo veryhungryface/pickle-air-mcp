@@ -253,13 +253,14 @@ Codex용 TOML 예는 [examples/codex-config.toml](examples/codex-config.toml)에
 | 증상 | 확인할 것 |
 |---|---|
 | `Expected agent is not visible` | 그 에이전트의 채팅 화면이 열려 있지 않습니다. 통화가 끝난 뒤 앱이 통화 기록 화면에 머물러 있을 때도 납니다. 뒤로 가기로 채팅 화면에 돌아오세요. |
-| `Pickle chat is not foreground` | BlueStacks 안에서 Pickle이 아닌 다른 앱·팝업이 떠 있습니다. |
+| `Pickle chat is not foreground` | BlueStacks 안에서 Pickle이 아닌 다른 앱·팝업이 떠 있습니다. Google Play의 앱 평가 팝업은 자동으로 닫고 계속합니다. |
 | `Request ID already recorded` | 이미 쓴 ID입니다. 위의 재전송 금지 규칙대로 상태를 확인한 뒤 판단하세요. |
 | `Another CLI operation is running` | 앞선 호출이 아직 끝나지 않았습니다. |
 | `pickle_usage`가 항목을 못 찾음 | 앱 언어가 영어가 아닐 수 있습니다. `pickle_cli/core.py`의 `LABELS`에 그 언어의 탭·항목 이름을 추가합니다. |
 | 답변이 "시작할게요" 한 줄뿐 (`reply_may_continue: true`) | 에이전트가 아직 작업 중입니다. 다시 보내지 말고 `pickle_read`의 `copy_messages`로 읽거나, 다음부터 `quiet`를 늘립니다. |
 | 긴 답변의 뒷부분이 빠짐 | 말풍선 사이 간격이 길었던 경우입니다. `pickle_read`의 `copy_messages`로 다시 읽습니다. |
-| `Attachment chip count differs; nothing sent` | 첨부 표시가 20초 안에 뜨지 않았습니다. 아무것도 전송되지 않았으니 입력창을 비우고 새 `request_id`로 다시 시도합니다. |
+| `Attachment chip count differs; nothing sent` | 파일을 한 번 더 골라 봤는데도 첨부 표시가 뜨지 않았습니다. 아무것도 전송되지 않았으니 입력창을 비우고 새 `request_id`로 다시 시도합니다. |
+| `File name not found in the recent chat` | 앱이 파일 이름을 확장자 없이 보여 주기도 합니다. `reply_files`에 나온 이름(확장자 포함)을 그대로 쓰면 찾습니다. |
 
 화면을 어떻게 인식했는지 보려면 `~/.local/state/pickle-air-cli/trace.on` 파일을 만드세요. 같은 폴더의 `trace.log`에 스냅샷 요약이 쌓입니다.
 

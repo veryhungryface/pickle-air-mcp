@@ -66,19 +66,35 @@ def dispatch(args):
             prior_outgoing=sum(m['text']==args.message and ui.mine(m) for m in before_messages)
             folder='pickle-cli-'+uuid.uuid4().hex[:16]
             names=ui.upload(staged,folder) if args.attach else []
-            for name in names:ui.attach(folder,name)
             # Local change: a large image's chip can appear a few seconds after the picker closes; wait for it.
-            def chips():
+            # Local fix: now and then the app drops a picked file without showing a chip. Pick that file
+            # once more, only while its chip is verifiably absent, so nothing is ever attached twice.
+            count=lambda nodes:sum(n.get('content-desc') in ['첨부 삭제','Remove attachment'] for n in nodes)
+            def chips(k):
                 nodes=ui.verify(ui.snapshot())
-                if sum(n.get('content-desc') in ['첨부 삭제','Remove attachment'] for n in nodes)!=len(names):raise CLIError('Attachment chip count differs; nothing sent')
+                if count(nodes)!=k:raise CLIError('Attachment chip count differs; nothing sent')
                 return nodes
-            nodes=ui.until(chips,20) if names else ui.verify(ui.snapshot())
-            ui.text(args.message)
-            nodes=ui.verify(ui.snapshot())
-            if ui.field(nodes).get('text')!=args.message:raise CLIError('Draft changed before send')
-            if sum(n.get('content-desc') in ['첨부 삭제','Remove attachment'] for n in nodes)!=len(names):raise CLIError('Attachments changed before send')
-            button=ui.choose(nodes,'content-desc',LABELS['send'],ui.field(nodes).get('package'))
-            if button.get('enabled')!='true':raise CLIError('Send button is not enabled')
+            try:
+                for i,name in enumerate(names):
+                    for attempt in (0,1):
+                        ui.attach(folder,name)
+                        try:ui.until(lambda:chips(i+1),20);break
+                        except CLIError:
+                            if attempt or count(ui.verify(ui.snapshot()))!=i:raise
+                            ui.note('attachment chip missing; picking the file again')
+                nodes=chips(len(names))
+                ui.text(args.message)
+                nodes=ui.verify(ui.snapshot())
+                if ui.field(nodes).get('text')!=args.message:raise CLIError('Draft changed before send')
+                if count(nodes)!=len(names):raise CLIError('Attachments changed before send')
+                button=ui.choose(nodes,'content-desc',LABELS['send'],ui.field(nodes).get('package'))
+                if button.get('enabled')!='true':raise CLIError('Send button is not enabled')
+            except CLIError:
+                # Nothing was sent: do not leave the uploaded copies in the emulator.
+                if names:
+                    try:adb.shell('rm -r '+shlex.quote('/sdcard/Download/'+folder))
+                    except CLIError:pass
+                raise
             journal.set('send_attempted')  # Durable before the only send tap.
             ui.tap(button)
             deadline=time.monotonic()+args.timeout;replies=[];seen=set();last_change=time.monotonic();confirmed=False;download=None
@@ -88,7 +104,8 @@ def dispatch(args):
                 texts=[m['text'] for m in messages]
                 outgoing=sum(m['text']==args.message and ui.mine(m) for m in messages)
                 if outgoing>prior_outgoing and not confirmed:
-                    check=ui.verify(ui.snapshot())
+                    try:check=ui.verify(ui.snapshot())
+                    except CLIError:time.sleep(1);continue  # Read retry only. Never Send again.
                     if not ui.field(check).get('text'):
                         confirmed=True;journal.set('sent_confirmed')
                 # Local fix: 'Thinking...' / 'Typing…' are progress indicators, not replies. While one is

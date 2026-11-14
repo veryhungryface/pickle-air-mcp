@@ -5,7 +5,13 @@ from .adb import ADB,CLIError
 PACKAGE='com.pickle.client'
 LABELS={'attach':['첨부 추가','Add attachment'],'files':['파일','Files','File'], 'send':['보내기','Send'], 'root':['루트 표시','Show roots'], 'downloads':['다운로드','Downloads'], 'savefile':['파일에 저장','Save to Files','Save to files'], 'save':['저장','Save','SAVE'], 'savephoto':['Save photo','사진 저장'], 'back':['Back','뒤로'], 'mypickle':['My Pickle','나의 피클','내 피클','마이 피클'], 'chat':['Chat','채팅','대화'], 'tickets':['Reset tickets','초기화권','한도 초기화권','리셋 티켓'], 'order':['Ticket order','사용 순서','티켓 사용 순서']}
 SAFE_ASCII=re.compile(r"[A-Za-z0-9 .,!?_:/()+=@#\-]*\Z")
-FILE_SIZE=re.compile(r'[\d.,]+ ?(B|KB|MB|GB) [·•] ?\S+')  # file card subtitle, e.g. '77B · txt'
+FILE_SIZE=re.compile(r'(?:[^·•\n]{1,24} [·•] ?)?[\d.,]+ ?(B|KB|MB|GB) [·•] ?\S+')  # file card subtitle, e.g. '77B · txt' or '2 pages · 15.9MB · pdf'
+def card_ext(info):
+    """Extension shown at the end of a file card subtitle ('... · pdf' -> 'pdf'), or ''."""
+    m=re.search(r'[·•] ?([A-Za-z0-9]{1,8})\Z',info or '');return m.group(1).lower() if m else ''
+def card_name(label,info):
+    """Local fix: the app shows some file names without their extension. Report the full name."""
+    ext=card_ext(info);return label if not ext or label.lower().endswith('.'+ext) else label+'.'+ext
 # Local addition: names of files the agent creates are often Korean or contain spaces. They are only
 # matched on screen and used as the local file name, so allow anything that cannot form a path.
 # Progress indicators the app shows while the agent works; never part of a reply.
@@ -98,13 +104,18 @@ class Pickle:
                     'classes':sorted({n.get('class').split('.')[-1] for n in nodes})},ensure_ascii=False)+'\n')
         except OSError:pass
     def snapshot(self):
-        last=None
-        for _ in range(3):
+        last=None;dismissed=False
+        for _ in range(4):
             try:
                 text=self.adb.shell('uiautomator dump /dev/tty')
                 start=text.find('<?xml');end=text.rfind('</hierarchy>')
                 if start<0 or end<0:raise CLIError('UI not idle or hierarchy unavailable')
-                nodes=list(ET.fromstring(text[start:end+12]).iter('node'));self.trace(nodes);return nodes
+                nodes=list(ET.fromstring(text[start:end+12]).iter('node'));self.trace(nodes)
+                # Local fix: Google Play's "rate this app" sheet can pop up over the chat at any moment and
+                # made a sent request look failed. Close exactly that dialog with Back (once) and look again.
+                if not dismissed and any(n.get('package')=='com.android.vending' for n in nodes) and 'inappreviewdialog' in self.adb.shell('dumpsys window | grep mCurrentFocus || true'):
+                    dismissed=True;self.note('closed Play in-app review dialog');self.adb.shell('input keyevent 4');time.sleep(1);continue
+                return nodes
             except (CLIError,ET.ParseError) as e:last=e;time.sleep(0.5)
         raise CLIError(str(last))
     def verify(self,nodes):
@@ -383,7 +394,7 @@ class Pickle:
             size=[t for t in texts if FILE_SIZE.fullmatch(t)]
             label=[t for t in texts if t not in size and not re.fullmatch(r'[A-Z0-9]{2,5}',t)]
             if size and len(label)==1:
-                out.append({'texts':texts,'mine':r['mine'],'press':r['press'][:2],'file':{'name':label[0],'info':size[0]}});continue
+                out.append({'texts':texts,'mine':r['mine'],'press':r['press'][:2],'file':{'name':card_name(label[0],size[0]),'info':size[0]}});continue
             # A centred single line that reaches neither margin is a date separator, not a bubble.
             out.append({'texts':texts,'mine':r['mine'],'press':r['press'][:2],'alt':r.get('alt')})
         return out
@@ -530,6 +541,12 @@ class Pickle:
             self.adb.shell('am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d '+shlex.quote('file://'+dest))
             out.append(name)
         return out
+    def read_remote(self,remote,size):
+        """Local fix: one `base64` of a file near the 16 MiB limit outlasts the ADB timeout. Read big
+        files in 512 KiB pieces; the caller compares the SHA-256 of the result with the device's."""
+        q=shlex.quote(remote);step=512*1024
+        if size<=step:return base64.b64decode(self.adb.shell('base64 '+q),validate=False)
+        return b''.join(base64.b64decode(self.adb.shell(f'dd if={q} bs={step} skip={i} count=1 2>/dev/null | base64'),validate=False) for i in range(-(-size//step)))
     def pull(self,remote,expected_size=None):
         previous=None;stable=0;data=None;sha=None
         for _ in range(30):
@@ -542,7 +559,7 @@ class Pickle:
                 signature=(size,sha)
                 stable=stable+1 if signature==previous else 0;previous=signature
                 if stable<2:time.sleep(1);continue
-                data=base64.b64decode(self.adb.shell('base64 '+shlex.quote(remote)),validate=False)
+                data=self.read_remote(remote,size)
                 after=self.adb.shell('sha256sum '+shlex.quote(remote)).split()[0]
                 if len(data)==size and digest(data)==sha==after:break
                 stable=0;data=None
@@ -628,11 +645,19 @@ class Pickle:
                 self.until(lambda:self.field(self.verify(self.snapshot())))
             except CLIError:pass
     def find_file(self,name):
-        """Locate a file card by exact name, newest first, scrolling back a few pages if needed."""
+        """Locate a file card by exact name, newest first, scrolling back a few pages if needed.
+        Local fix: the app may show the name without its extension ('report' + '... · pdf'), so
+        'report.pdf' also matches that card."""
         self.to_latest()
+        stem,ext=Path(name).stem,Path(name).suffix[1:].lower()
         for _ in range(12):
             nodes=self.verify(self.snapshot());bottom=bounds(self.field(nodes))[1]
-            hit=[n for n in nodes if n.get('text')==name and n.get('package')==PACKAGE and self.px(250)<center(n)[1]<bottom-self.px(10)]
+            def card(n):
+                if n.get('text')==name:return True
+                if not ext or n.get('text')!=stem:return False
+                b=bounds(n)
+                return any(FILE_SIZE.fullmatch(m.get('text') or '') and card_ext(m.get('text'))==ext and b[1]<=bounds(m)[1]<=b[3]+self.px(100) for m in nodes)
+            hit=[n for n in nodes if card(n) and n.get('package')==PACKAGE and self.px(250)<center(n)[1]<bottom-self.px(10)]
             if hit:return nodes,max(hit,key=lambda n:bounds(n)[1])
             mid=self.width()//2
             self.adb.shell(f'input touchscreen swipe {mid} {bottom-self.px(560)} {mid} {bottom-self.px(140)} 900');time.sleep(0.8)
@@ -642,11 +667,15 @@ class Pickle:
     def download(self,name,output_dir):
         if not SAFE_DL.fullmatch(name):raise CLIError('Download filename must not contain path separators or control characters')
         out=Path(output_dir).expanduser();out.mkdir(mode=0o700,parents=True,exist_ok=True)
-        dest=out/name
-        if dest.exists():raise CLIError('Output exists; refusing overwrite: '+str(dest))
+        if (out/name).exists():raise CLIError('Output exists; refusing overwrite: '+str(out/name))
         nodes,n=self.find_file(name)
         nearby=[m.get('text','') for m in nodes if m.get('text') and bounds(n)[1]<=bounds(m)[1]<=bounds(n)[3]+self.px(100)]
-        exact_sizes=[int(re.match(r'(\d+)B [·•]',t).group(1)) for t in nearby if re.match(r'(\d+)B [·•]',t)]
+        # Local fix: keep the extension the card shows when the given name has none.
+        info=next((t for t in nearby if FILE_SIZE.fullmatch(t)),'')
+        if not Path(name).suffix:name=card_name(name,info)
+        dest=out/name
+        if dest.exists():raise CLIError('Output exists; refusing overwrite: '+str(dest))
+        exact_sizes=[int(m.group(1)) for m in (re.search(r'(?:\A|[·•] ?)(\d+)B [·•]',t) for t in nearby) if m]
         expected_size=exact_sizes[0] if len(exact_sizes)==1 else None
         x,y=center(n);self.adb.shell(f'input touchscreen swipe {x} {y} {x} {y} 900')
         self.tap_label('savefile')
